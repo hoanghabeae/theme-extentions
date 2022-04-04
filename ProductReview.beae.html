@@ -1,0 +1,180 @@
+<template>
+    <div class="beae-element beae-product-single beae-product-single__review">
+        <div
+            class="beae-product-single__review-wrapper"
+            :data-review-platform="liquid('review_platform')"
+        >
+            <div
+                class="beae-product-single__review-container"
+                v-html="liquid('review')"
+            />
+        </div>
+    </div>
+</template>
+
+<script>
+    import { Liquid, Element, Javascript } from '@/mixins';
+    export default {
+        name: 'ProductReviewForm',
+        mixins: [Liquid, Element, Javascript],
+        props: {
+            data: {
+                type: Object,
+                default () {
+                    return {};
+                }
+            }
+        },
+        computed: {
+
+            liquids () {
+                return {
+                    review_platform: {
+                        code: '{%- assign review_platform = shop.metafields.beae.app_review -%}{{review_platform}}',
+                        preview: ''
+                    },
+                    review: {
+                        code: `
+                        {%- if review_platform -%}
+                            {%- case review_platform -%}
+                                {%- when 'none' -%}
+                                {%- when 'ali-reviews' -%}
+                                    <div id="shopify-ali-review" product-id="{{ product.id }}"> {{- shop.metafields.review_collector.review_code -}}</div>
+                                {%- when 'judgeme' -%}
+                                    {%- render 'judgeme_widgets', widget_type: 'judgeme_review_widget', concierge_install: true, product: product -%}
+                                {%- when 'product-reviews-addon' -%}
+                                    <div id="stamped-main-widget"
+                                        data-widget-style="standard"
+                                        data-product-id="{{ product.id }}"
+                                        data-name="{{ product.title | escape }}"
+                                        data-url="{{ shop.url }}{{ product.url }}"
+                                        data-image-url="{{ product.featured_image | product_img_url: "large" |replace: '?', '%3F' | replace: '&','%26'}}"
+                                        data-description="{{ product.description | escape }}"
+                                        data-product-sku="{{product.handle}}">
+                                        {{- product.metafields.stamped.reviews -}}
+                                    </div>
+                                {%- when 'areviews-aliexpress'-%}
+                                    <div class="page-full">{%- render 'aliexpress_reviews',  product: product-%}</div>
+                                {%- when 'loox'-%}
+                                    <div id="looxReviews" data-product-id="{{product.id}}" >{{- product.metafields.loox.reviews -}}</div>
+                                {% when 'ryviu'%}
+                                    <!-- RYVIU APP :: WIDGET -->
+                                        <div class="lt-block-reviews">
+                                            <ryviu-widget
+                                                handle="{{product.handle}}"
+                                                title_product="{{product.title}}"
+                                                total_meta="{{ product.metafields.ryviu.r_count }}"
+                                                image_product="{{ product.featured_image.src | img_url: '800x' }}"></ryviu-widget>
+                                        </div>
+                                    <!-- / RYVIU APP -->
+                                {%- when 'yotpo-social-reviews' -%}
+                                    <div class="yotpo yotpo-main-widget" data-product-id="{{ product.id }}" data-name="{{ product.title | escape }}" data-url="{{ shop.url }}{{ product.url }}" data-image-url="{{ product.featured_image | product_img_url: "large" |replace: '?', '%3F' | replace: '&','%26'}}" data-description="{{ product.description | escape }}"></div>
+                                {%- when 'aliexpress-reviews-importer'-%}
+                                    <div id="shopbooster-ali" product-id="{{ product.id }}" ></div>
+                                {%- when 'rivyo-product-review'-%}
+                                    <div id="wc_review_section" class="wc_review_main_content" data-url="{{ shop.url }}" data-handle="{{ product.handle }}" data-product_id="{{ product.id }}" data-limit="0"></div>
+                                {%-when 'growave' -%}
+                                    {% capture the_snippet_reviews %}{% render 'socialshopwave-widget-recommends' with 1, product: product %}{% endcapture %}
+                                        {% unless the_snippet_reviews contains 'Liquid error' %}
+                                        {{ the_snippet_reviews }}
+                                    {% endunless %}
+                                {%- when 'smart-aliexpress-reviews'-%}
+                                    {% render "reviews-importer"  product: product%}
+                                {%- when 'photo-reviews' -%}
+                                    <div style="clear:both;"></div>
+                                        <div id="opinew-reviews-product-page-code" class="">
+                                            <span id="opinew-plugin" data-server-address="https://www.opinew.com" data-opw-prodreviews="{{ product.metafields.opinew_metafields['product_plugin'] }}" data-opinew-shop-id="{{ shop.id }}" data-shop-url="{{shop.domain}}" data-platform-product-id="{{product.id}}">
+                                            <span id="opinew_product_plugin_app"></span>
+                                            </span>
+                                        </div>
+                                {%- when 'product-reviews' -%}
+                                    <div id="shopify-product-reviews" data-id="{{product.id}}">{{- product.metafields.spr.reviews -}}</div>
+                                {% else %}
+                                <p>The review platform not supported</p>
+                            {%-endcase-%}
+                        {%- else -%}
+                            <p>Please select the review platform in settings</p>
+                        {%- endif -%}
+                        `,
+                        preview: `
+                            <div class="beae-skeleton-item">
+                                <div class="beae-skeleton-col-5">
+                                    <div class="beae-skeleton-row">
+                                        <div class="beae-skeleton-col-12"></div>
+                                    </div>
+                                </div>
+                                <div class="beae-skeleton-col-7"></div>
+                            </div>
+                        `
+                    }
+                };
+            },
+
+            settings () {
+                return [{params:[
+                    {
+                        type: 'paragraph',
+                        content: 'Display product reviews and review forms for current products. You can select a review platform [here](#settings/app_settings/apps)'
+                    }
+                ]}];
+            },
+
+            javascript () {
+                return function () {
+                    let $el = this.$el,
+                        $wrapper = $el.querySelector('.beae-product-single__review-wrapper');
+                    if ($wrapper && $wrapper.dataset.reviewPlatform && !this.isLive) {
+                        switch ($wrapper.dataset.reviewPlatform) {
+                            case 'product-reviews':
+                                if (window.SPR) {
+                                    try {
+                                        window.SPR.$ = window.jQuery;
+                                        window.SPR.initDomEls();
+                                        window.SPR.loadProducts();
+                                    }
+                                    catch (e) {
+                                        console.info(e.message);
+                                    }
+                                }
+
+                                break;
+                            case 'judgeme':
+                                if(window.jdgm)
+                                {
+                                    window.jdgm.initializeWidgets();
+                                }
+                                break;
+                            case 'product-reviews-addon':
+                                if(window.StampedFn)
+                                {
+                                    window.StampedFn.init();
+                                }
+                                break;
+                            case 'yotpo-social-reviews':
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+
+                };
+            },
+
+            css () {
+                return `
+
+                `;
+            },
+
+            requestShopifyType () {
+                return {
+                    shopify_type: 'product'
+                };
+            }
+        },
+        methods: {
+
+        }
+
+    };
+</script>
