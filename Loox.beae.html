@@ -1,0 +1,90 @@
+<template>
+    <div class="beae-element beae-product-single beae-product-single__rating">
+        <div
+            class="beae-product-single__rating-wrapper"
+        >
+            <div
+                class="beae-product-single__rating-container"
+                v-html="liquid('rating')"
+            />
+            ádasdasd
+        </div>
+    </div>
+</template>
+
+<script>
+    import { Liquid, Element, Javascript } from '@/mixins';
+    export default {
+        name: 'LooxRating',
+        props: {
+            data: {
+                type: Object,
+                default () {
+                    return {};
+                }
+            }
+        },
+        computed: {
+
+            liquids () {
+                return {
+                    rating: {
+                        code: `
+                            <a href="#looxReviews">
+                                <div class="loox-rating" data-id="{{ product.id }}" data-rating="{{ product.metafields.loox.avg_rating }}" data-raters="{{ product.metafields.loox.num_reviews }}"></div>
+                            </a>
+                        `,
+                        preview: `
+                            <div class="beae-skeleton-item">
+                                <div class="beae-skeleton-col-5">
+                                    <div class="beae-skeleton-row">
+                                        <div class="beae-skeleton-col-12"></div>
+                                    </div>
+                                </div>
+                                <div class="beae-skeleton-col-7"></div>
+                            </div>
+                        `
+                    }
+                };
+            },
+
+            settings () {
+                return [
+                    {
+                        params: [
+                            {
+                                type:'popup',
+                                label:'Type',
+                                name:'type',
+                                options: {
+                                    values: {
+                                        badge: 'Review badge',
+                                        widget: 'Review widget',
+                                        carousel: 'Carousel slider'
+                                    }
+                                }
+                            },
+                            {
+                                type:'number',
+                                name:'limit',
+                                label:'Maximum review to show',
+                                options: {
+                                    min:1,
+                                    max:100,
+                                    visible: (data) => data['type'] == 'carousel'
+                                }
+                            }
+                        ]
+                    }
+                ];
+            },
+            requestShopifyType () {
+                return {
+                    shopify_type: 'product'
+                };
+            },
+           
+
+        }
+    };
+</script>
